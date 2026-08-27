@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Shop</title>
+<style>
+  @font-face-fallback { }
+  :root {
+    --paper: #FBF9F4;
+    --ink: #14201C;
+    --pine: #1F5C4F;
+    --pine-dark: #163F36;
+    --marigold: #C98A1F;
+    --card: #FFFFFF;
+    --muted: #6B7268;
+    --line: rgba(20,32,28,0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  h1, h2, .display {
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  }
+  .price, .mono {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+  a { color: inherit; }
+  header {
+    background: var(--pine);
+    color: var(--paper);
+    padding: 28px 20px 34px;
+  }
+  header .shop-name {
+    font-size: 28px;
+    font-weight: 600;
+    font-style: italic;
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  header .tagline {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(251,249,244,0.75);
+    letter-spacing: 0.3px;
+  }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 22px 16px 60px;
+  }
+  #state-msg {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 16px;
+    font-size: 15px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+  .product-card {
+    position: relative;
+    background: var(--card);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(20,32,28,0.10), 0 1px 2px rgba(20,32,28,0.06);
+    display: flex;
+    flex-direction: column;
+    animation: rise 0.35s ease both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .product-card { animation: none; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .product-photo {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    background: #EFEAE0;
+    display: block;
+  }
+  .product-photo.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--pine);
+    font-family: 'Fraunces', serif;
+    font-size: 34px;
+    font-style: italic;
+  }
+  .stub-divider {
+    position: relative;
+    margin: 0 0 0;
+    border-top: 2px dashed var(--line);
+  }
+  .stub-divider::before,
+  .stub-divider::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--paper);
+  }
+  .stub-divider::before { left: -10px; }
+  .stub-divider::after { right: -10px; }
+  .product-info {
+    padding: 14px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+  .product-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin: 0;
+  }
+  .product-price {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--marigold);
+    margin: 0;
+  }
+  .wa-btn {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--pine);
+    color: var(--paper);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 10px;
+    border-radius: 999px;
+    transition: background 0.15s ease;
+  }
+  .wa-btn:hover, .wa-btn:focus-visible { background: var(--pine-dark); }
+  .wa-btn:focus-visible { outline: 2px solid var(--marigold); outline-offset: 2px; }
+  .wa-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  footer {
+    text-align: center;
+    padding: 24px 16px 40px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <p class="shop-name display" id="shop-name-el">My Shop</p>
+  <p class="tagline">Tap a product to order on WhatsApp</p>
+</header>
+<main>
+  <div id="state-msg">Loading products…</div>
+  <div class="grid" id="grid" style="display:none;"></div>
+</main>
+<footer id="footer-el">My Shop</footer>
+
+<script>
+  // ---- Customize these three lines for your shop, then re-save this file ----
+  const SHOP_NAME = "My Shop";                 // your shop's display name
+  const WHATSAPP_NUMBER = "911234567890";       // country code + number, digits only, no + or spaces
+  const CURRENCY_SYMBOL = "₹";                  // e.g. ₹, $, €, £
+  // ----------------------------------------------------------------------------
+
+  document.getElementById('shop-name-el').textContent = SHOP_NAME;
+  document.getElementById('footer-el').textContent = SHOP_NAME;
+  document.title = SHOP_NAME;
+
+  const stateMsg = document.getElementById('state-msg');
+  const grid = document.getElementById('grid');
+
+  function waIconSvg() {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-11.9 7.8L4 21l1.8-5A8.5 8.5 0 1 1 21 11.5Z"></path></svg>';
+  }
+
+  function buildWaLink(product) {
+    const msg = 'Hi! I would like to order: ' + product.name + ' (' + CURRENCY_SYMBOL + product.price + ')';
+    return 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+  }
+
+  function renderProducts(products) {
+    grid.innerHTML = '';
+    if (!products.length) {
+      stateMsg.textContent = 'No products yet — check back soon.';
+      stateMsg.style.display = 'block';
+      grid.style.display = 'none';
+      return;
+    }
+    stateMsg.style.display = 'none';
+    grid.style.display = 'grid';
+
+    products.forEach(function (product) {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+
+      if (product.image_url) {
+        const img = document.createElement('img');
+        img.className = 'product-photo';
+        img.src = product.image_url;
+        img.alt = product.name;
+        img.loading = 'lazy';
+        card.appendChild(img);
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'product-photo placeholder';
+        ph.textContent = (product.name || '?').charAt(0).toUpperCase();
+        card.appendChild(ph);
+      }
+
+      const divider = document.createElement('div');
+      divider.className = 'stub-divider';
+      card.appendChild(divider);
+
+      const info = document.createElement('div');
+      info.className = 'product-info';
+
+      const name = document.createElement('p');
+      name.className = 'product-name';
+      name.textContent = product.name;
+      info.appendChild(name);
+
+      const price = document.createElement('p');
+      price.className = 'product-price price';
+      price.textContent = CURRENCY_SYMBOL + product.price;
+      info.appendChild(price);
+
+      const btn = document.createElement('a');
+      btn.className = 'wa-btn';
+      btn.href = buildWaLink(product);
+      btn.target = '_blank';
+      btn.rel = 'noopener';
+      btn.innerHTML = waIconSvg() + '<span>Order on WhatsApp</span>';
+      info.appendChild(btn);
+
+      card.appendChild(info);
+      grid.appendChild(card);
+    });
+  }
+
+  fetch('/api/products')
+    .then(function (res) { if (!res.ok) throw new Error('Failed to load'); return res.json(); })
+    .then(renderProducts)
+    .catch(function () {
+      stateMsg.textContent = "Couldn't load products right now. Please refresh.";
+    });
+</script>
+</body>
+</html>
